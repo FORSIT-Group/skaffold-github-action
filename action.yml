@@ -1,0 +1,82 @@
+name: 'Skaffold Deploy'
+description: 'Build and deploy applications using Skaffold'
+branding:
+  icon: 'upload-cloud'
+  color: 'blue'
+
+inputs:
+  skaffold-version:
+    description: 'Skaffold version to use'
+    required: false
+    default: 'latest'
+  command:
+    description: 'Skaffold command to run (build, deploy, run, debug, diagnose)'
+    required: false
+    default: 'run'
+  profile:
+    description: 'Skaffold profile to use'
+    required: false
+  default-repo:
+    description: 'Default container registry'
+    required: true
+  filename:
+    description: 'Path to skaffold.yaml'
+    required: false
+    default: 'skaffold.yaml'
+  namespace:
+    description: 'Kubernetes namespace'
+    required: false
+  tag:
+    description: 'Custom tag for images'
+    required: false
+  cache-file:
+    description: 'Path to cache file'
+    required: false
+  build-artifacts:
+    description: 'Path to build artifacts file'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Skaffold
+      shell: bash
+      run: |
+        curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/${{ inputs.skaffold-version }}/skaffold-linux-amd64
+        chmod +x skaffold
+        sudo mv skaffold /usr/local/bin
+        skaffold version
+
+    - name: Build Command
+      shell: bash
+      run: |
+        CMD="skaffold ${{ inputs.command }}"
+        
+        if [ ! -z "${{ inputs.filename }}" ]; then
+          CMD="$CMD -f ${{ inputs.filename }}"
+        fi
+        
+        if [ ! -z "${{ inputs.profile }}" ]; then
+          CMD="$CMD -p ${{ inputs.profile }}"
+        fi
+        
+        if [ ! -z "${{ inputs.namespace }}" ]; then
+          CMD="$CMD -n ${{ inputs.namespace }}"
+        fi
+        
+        if [ ! -z "${{ inputs.tag }}" ]; then
+          CMD="$CMD --tag ${{ inputs.tag }}"
+        fi
+        
+        if [ ! -z "${{ inputs.cache-file }}" ]; then
+          CMD="$CMD --cache-file ${{ inputs.cache-file }}"
+        fi
+        
+        if [ ! -z "${{ inputs.build-artifacts }}" ]; then
+          CMD="$CMD --build-artifacts ${{ inputs.build-artifacts }}"
+        fi
+        
+        echo "Executing: $CMD"
+        eval $CMD
+      env:
+        SKAFFOLD_DEFAULT_REPO: ${{ inputs.default-repo }}
