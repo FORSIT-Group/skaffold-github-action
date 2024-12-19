@@ -29,6 +29,10 @@ inputs:
   tag:
     description: 'Custom tag for images'
     required: false
+  short-hash:
+    description: 'Include git short hash in tag'
+    required: false
+    default: 'false'
   cache-file:
     description: 'Path to cache file'
     required: false
@@ -53,6 +57,7 @@ runs:
         skaffold config set --global collect-metrics ${{ inputs.collect-metrics }}
 
     - name: Get Git short SHA
+      if: inputs.short-hash == 'true'
       shell: bash
       id: git_sha
       run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
@@ -75,7 +80,11 @@ runs:
         fi
         
         if [ ! -z "${{ inputs.tag }}" ]; then
-          TAG="${{ steps.git_sha.outputs.sha_short }}-${{ inputs.tag }}"
+          if [ "${{ inputs.short-hash }}" = "true" ]; then
+            TAG="${{ steps.git_sha.outputs.sha_short }}-${{ inputs.tag }}"
+          else
+            TAG="${{ inputs.tag }}"
+          fi
           CMD="$CMD --tag $TAG"
         fi
         

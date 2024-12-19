@@ -1,5 +1,3 @@
-Here's an expanded README.md for your skaffold-github-action repository:
-
 # Skaffold GitHub Action
 
 A flexible GitHub Action for building and deploying applications using Skaffold.
@@ -11,55 +9,50 @@ A flexible GitHub Action for building and deploying applications using Skaffold.
 
 ### Optional Inputs
 - `skaffold-version`: Skaffold version (default: 'latest')
+- `command`: Skaffold command to run (default: 'run')
 - `profile`: Skaffold profile name
 - `filename`: Path to skaffold.yaml (default: 'skaffold.yaml')
-- `command`: Skaffold command to run (default: 'run')
 - `namespace`: Kubernetes namespace
 - `tag`: Custom tag for images
+- `short-hash`: Include git short hash in tag (default: 'false')
 - `cache-file`: Path to cache file
 - `build-artifacts`: Path to build artifacts file
+- `collect-metrics`: Enable/disable Skaffold metrics collection (default: 'false')
 
-## Commands
+## Usage Examples
 
-### Basic Build and Deploy
+### Basic Build
 ```
-- uses: your-username/skaffold-github-action@main
+- uses: your-org/skaffold-github-action@main
   with:
-    default-repo: 'gcr.io/my-project'
-    command: 'run'
-    profile: 'prod'
-```
-
-### Build Only
-```
-- uses: your-username/skaffold-github-action@main
-  with:
-    default-repo: 'gcr.io/my-project'
     command: 'build'
-    filename: './apps/service/skaffold.yaml'
+    default-repo: 'gcr.io/my-project'
 ```
 
-### Deploy Only
+### Build with Custom Tag and Git Hash
 ```
-- uses: your-username/skaffold-github-action@main
+- uses: your-org/skaffold-github-action@main
   with:
+    command: 'build'
+    profile: 'prod'
+    tag: 'release-1.0'
+    short-hash: 'true'
     default-repo: 'gcr.io/my-project'
+```
+
+### Deploy with Specific Profile and Namespace
+```
+- uses: your-org/skaffold-github-action@main
+  with:
     command: 'deploy'
-    build-artifacts: 'build.json'
-```
-
-### Debug Mode
-```
-- uses: your-username/skaffold-github-action@main
-  with:
+    profile: 'prod'
+    namespace: 'production'
     default-repo: 'gcr.io/my-project'
-    command: 'debug'
-    namespace: 'dev'
 ```
 
 ### Run Diagnostics
 ```
-- uses: your-username/skaffold-github-action@main
+- uses: your-org/skaffold-github-action@main
   with:
     command: 'diagnose'
     filename: './path/to/skaffold.yaml'
@@ -68,7 +61,7 @@ A flexible GitHub Action for building and deploying applications using Skaffold.
 ## Complete Workflow Example
 
 ```
-name: Skaffold CI/CD
+name: Build and Deploy
 on:
   push:
     branches: [ main ]
@@ -77,65 +70,68 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Important for git operations
       
       # Optional: Set up Docker Buildx
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       
-      # Optional: Login to Container Registry
+      # Login to Container Registry
       - name: Login to Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
-          registry: gcr.io
-          username: _json_key
-          password: ${{ secrets.GCR_JSON_KEY }}
+          registry: ${{ secrets.CONTAINER_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
       
       # Build Phase
-      - uses: your-username/skaffold-github-action@main
+      - uses: your-org/skaffold-github-action@main
         with:
-          default-repo: 'gcr.io/my-project'
           command: 'build'
           profile: 'prod'
-          filename: './services/app/skaffold.yaml'
-          cache-file: '.cache/skaffold'
-          tag: '${{ github.sha }}'
+          tag: 'release'
+          short-hash: 'true'
+          filename: './infrastructure/stage/skaffold.yaml'
+          default-repo: ${{ vars.CONTAINER_REGISTRY }}
+          collect-metrics: 'false'
           
       # Deploy Phase
-      - uses: your-username/skaffold-github-action@main
+      - uses: your-org/skaffold-github-action@main
         with:
-          default-repo: 'gcr.io/my-project'
           command: 'deploy'
           profile: 'prod'
           namespace: 'production'
-          build-artifacts: 'build.json'
+          default-repo: ${{ vars.CONTAINER_REGISTRY }}
 ```
 
 ## Common Command Flags
 
-You can append these flags to the command input:
+The action supports these Skaffold command flags:
 
-- `--filename/-f`: Set skaffold.yaml location
-- `--profile/-p`: Use specific profile
-- `--namespace/-n`: Deploy to specific namespace
-- `--tag`: Set custom tag
-- `--default-repo`: Override default repository
-- `--cache-file`: Specify cache file location
-- `--build-artifacts`: Specify build artifacts file
+- `filename/-f`: Set skaffold.yaml location
+- `profile/-p`: Use specific profile
+- `namespace/-n`: Deploy to specific namespace
+- `tag`: Set custom tag
+- `default-repo`: Override default repository
+- `cache-file`: Specify cache file location
+- `build-artifacts`: Specify build artifacts file
 
 ## Directory Structure Example
 
 ```
 your-project/
-├── skaffold.yaml
-├── k8s/
-│   ├── deployment.yaml
-│   └── service.yaml
-├── .github/
-│   └── workflows/
-│       └── deploy.yml
-└── src/
-    └── app/
+├── apps/
+├── infrastructure/
+│   ├── environments/
+│   ├── k8s-scripts/
+│   ├── manifests/
+│   ├── stage/
+│   │   └── skaffold.yaml
+│   └── scripts/
+├── [...]
+└── README.md
 ```
 
 ## Environment Variables
@@ -149,25 +145,43 @@ The action supports all standard Skaffold environment variables:
 
 ## Tips
 
-- Use caching to speed up builds:
-  ```
-  - uses: actions/cache@v3
-    with:
-      path: ~/.skaffold/
-      key: ${{ runner.os }}-skaffold-${{ hashFiles('**/skaffold.yaml') }}
-  ```
+### Caching
+Use GitHub's cache action to speed up builds:
+```
+- uses: actions/cache@v3
+  with:
+    path: ~/.skaffold/
+    key: ${{ runner.os }}-skaffold-${{ hashFiles('**/skaffold.yaml') }}
+```
 
-- For multiple profiles:
-  ```
-  - uses: your-username/skaffold-github-action@main
-    with:
-      command: 'run'
-      profile: 'prod,monitoring'
-  ```
+### Multiple Profiles
+```
+- uses: your-org/skaffold-github-action@main
+  with:
+    command: 'run'
+    profile: 'prod,monitoring'
+```
 
-- For debugging:
-  ```
-  - uses: your-username/skaffold-github-action@main
-    with:
-      command: 'debug --verbosity=debug'
-  ```
+### Debug Mode
+```
+- uses: your-org/skaffold-github-action@main
+  with:
+    command: 'debug'
+    profile: 'dev'
+```
+
+### Custom Working Directory
+```
+- uses: your-org/skaffold-github-action@main
+  with:
+    command: 'build'
+    filename: './services/myapp/skaffold.yaml'
+```
+
+## Notes
+
+- The action automatically handles Skaffold installation
+- Git short hash in tags is optional and controlled by the `short-hash` input
+- Metrics collection is disabled by default
+- The action supports all major Skaffold commands and configurations
+- Registry URLs should be stored as GitHub Variables, not Secrets
