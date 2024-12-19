@@ -35,6 +35,10 @@ inputs:
   build-artifacts:
     description: 'Path to build artifacts file'
     required: false
+  collect-metrics:
+    description: 'Enable/disable metrics collection'
+    required: false
+    default: 'false'
 
 runs:
   using: 'composite'
@@ -46,6 +50,12 @@ runs:
         chmod +x skaffold
         sudo mv skaffold /usr/local/bin
         skaffold version
+        skaffold config set --global collect-metrics ${{ inputs.collect-metrics }}
+
+    - name: Get Git short SHA
+      shell: bash
+      id: git_sha
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
     - name: Build Command
       shell: bash
@@ -65,7 +75,8 @@ runs:
         fi
         
         if [ ! -z "${{ inputs.tag }}" ]; then
-          CMD="$CMD --tag ${{ inputs.tag }}"
+          TAG="${{ steps.git_sha.outputs.sha_short }}-${{ inputs.tag }}"
+          CMD="$CMD --tag $TAG"
         fi
         
         if [ ! -z "${{ inputs.cache-file }}" ]; then
