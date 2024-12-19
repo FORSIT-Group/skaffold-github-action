@@ -43,6 +43,9 @@ inputs:
     description: 'Enable/disable metrics collection'
     required: false
     default: 'false'
+  output:
+    description: 'Output file for render command'
+    required: false
 
 runs:
   using: 'composite'
@@ -94,6 +97,10 @@ runs:
         
         if [ ! -z "${{ inputs.build-artifacts }}" ]; then
           CMD="$CMD --build-artifacts ${{ inputs.build-artifacts }}"
+        fi
+        
+        if [ ! -z "${{ inputs.output }}" ]; then
+          CMD="$CMD --output ${{ inputs.output }}"
         fi
         
         echo "Executing: $CMD"
