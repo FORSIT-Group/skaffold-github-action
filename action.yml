@@ -74,15 +74,15 @@ runs:
         CMD="skaffold ${{ inputs.command }}"
         
         if [ ! -z "${{ inputs.filename }}" ]; then
-          CMD="$CMD --filename ${{ inputs.filename }}"
+          CMD="$CMD --filename=${{ inputs.filename }}"
         fi
         
         if [ ! -z "${{ inputs.profile }}" ]; then
-          CMD="$CMD --profile ${{ inputs.profile }}"
+          CMD="$CMD --profile=${{ inputs.profile }}"
         fi
         
         if [ ! -z "${{ inputs.namespace }}" ]; then
-          CMD="$CMD --namespace ${{ inputs.namespace }}"
+          CMD="$CMD --namespace=${{ inputs.namespace }}"
         fi
         
         if [ ! -z "${{ inputs.tag }}" ]; then
@@ -91,23 +91,19 @@ runs:
           else
             TAG="${{ inputs.tag }}"
           fi
-          CMD="$CMD --tag $TAG"
+          CMD="$CMD --tag=$TAG"
         fi
         
         if [ ! -z "${{ inputs.cache-file }}" ]; then
-          CMD="$CMD --cache-file ${{ inputs.cache-file }}"
-        fi
-        
-        if [ ! -z "${{ inputs.build-artifacts }}" ]; then
-          CMD="$CMD --build-artifacts ${{ inputs.build-artifacts }}"
+          CMD="$CMD --cache-file=${{ inputs.cache-file }}"
         fi
         
         if [ ! -z "${{ inputs.cache-artifacts }}" ]; then
-          CMD="$CMD --cache-artifacts ${{ inputs.cache-artifacts }}"
+          CMD="$CMD --cache-artifacts=${{ inputs.cache-artifacts }}"
         fi
         
         if [ ! -z "${{ inputs.output }}" ]; then
-          CMD="$CMD --output ${{ inputs.output }}"
+          CMD="$CMD --output=${{ inputs.output }}"
         fi
         
         echo "Executing: $CMD"
